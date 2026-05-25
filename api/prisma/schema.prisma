@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  DOCENTE
+  ADMIN_INSTITUCION
+  EDITOR
+}
+
+enum SubscriptionPlan {
+  GRATUITO
+  PRO
+  INSTITUCIONAL
+}
+
+enum AnnotationKind {
+  ERROR
+  ERROR_PARCIAL
+}
+
+enum InvoiceStatus {
+  PAGADA
+  PENDIENTE
+  FALLIDA
+  REEMBOLSADA
+}
+
+model User {
+  id              String           @id @default(uuid())
+  fullName        String
+  email           String           @unique
+  passwordHash    String
+  birthDate       DateTime
+  role            UserRole         @default(DOCENTE)
+  plan            SubscriptionPlan @default(GRATUITO)
+  institutionId   String?
+  institution     Institution?     @relation("InstitutionMembers", fields: [institutionId], references: [id], onDelete: SetNull)
+  adminOf         Institution?     @relation("InstitutionAdmin")
+  createdBooks    Book[]           @relation("BookCreator")
+  annotationsCreated Annotation[]  @relation("AnnotationAuthor")
+  annotationViews AnnotationView[]
+  invoices        Invoice[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([institutionId])
+  @@index([role])
+}
+
+model Institution {
+  id          String   @id @default(uuid())
+  name        String
+  adminId     String   @unique
+  admin       User     @relation("InstitutionAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  members     User[]   @relation("InstitutionMembers")
+  invoices    Invoice[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Subject {
+  id    String @id @default(uuid())
+  name  String @unique
+  books Book[]
+}
+
+model GradeLevel {
+  id    String @id @default(uuid())
+  name  String @unique
+  order Int    @unique
+  books Book[]
+}
+
+model Book {
+  id             String        @id @default(uuid())
+  title          String
+  description    String
+  schoolYear     String
+  pdfPath        String
+  coverPath      String?
+  pageCount      Int           @default(0)
+  hidden         Boolean       @default(true)
+  subjectId      String
+  subject        Subject       @relation(fields: [subjectId], references: [id])
+  gradeLevelId   String
+  gradeLevel     GradeLevel    @relation(fields: [gradeLevelId], references: [id])
+  createdById    String
+  createdBy      User          @relation("BookCreator", fields: [createdById], references: [id])
+  annotations    Annotation[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([subjectId])
+  @@index([gradeLevelId])
+  @@index([schoolYear])
+  @@index([hidden])
+}
+
+model Annotation {
+  id         String           @id @default(uuid())
+  bookId     String
+  book       Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  page       Int
+  kind       AnnotationKind
+  // Coordenadas normalizadas (0..1) relativas a la página
+  x          Float
+  y          Float
+  width      Float
+  height     Float
+  content    String           // markdown
+  authorId   String
+  author     User             @relation("AnnotationAuthor", fields: [authorId], references: [id])
+  views      AnnotationView[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([bookId, page])
+}
+
+// Registra consultas a anotaciones para imponer el límite de 20/mes del plan Gratuito
+model AnnotationView {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  annotationId String
+  annotation   Annotation @relation(fields: [annotationId], references: [id], onDelete: Cascade)
+  viewedAt     DateTime   @default(now())
+
+  @@index([userId, viewedAt])
+}
+
+model Invoice {
+  id            String           @id @default(uuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institutionId String?
+  institution   Institution?     @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  plan          SubscriptionPlan
+  amount        Decimal          @db.Decimal(10, 2)
+  status        InvoiceStatus    @default(PAGADA)
+  periodStart   DateTime
+  periodEnd     DateTime
+  paymentMethodLast4 String?
+  createdAt     DateTime         @default(now())
+
+  @@index([userId])
+  @@index([institutionId])
+}

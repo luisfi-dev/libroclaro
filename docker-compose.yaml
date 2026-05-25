@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: libroclaro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: libroclaro
+      POSTGRES_PASSWORD: libroclaro
+      POSTGRES_DB: libroclaro
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U libroclaro"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    container_name: libroclaro-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: libroclaro
+      MONGO_INITDB_ROOT_PASSWORD: libroclaro
+      MONGO_INITDB_DATABASE: libroclaro
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    image: luisfidev/libroclaro:latest
+    container_name: libroclaro-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-libroclaro-change-me}
+      JWT_EXPIRES_IN: 7d
+      DATABASE_URL: postgresql://libroclaro:libroclaro@postgres:5432/libroclaro?schema=public
+      MONGO_URL: mongodb://libroclaro:libroclaro@mongo:27017/libroclaro?authSource=admin
+      STORAGE_DIR: /app/storage
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    ports:
+      - "4000:4000"
+    volumes:
+      - api-storage:/app/storage
+
+volumes:
+  postgres-data:
+  mongo-data:
+  api-storage:

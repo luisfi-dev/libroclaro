@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.*.local
+storage/books/*
+storage/covers/*
+storage/annotated/*
+!storage/books/.gitkeep
+!storage/covers/.gitkeep
+!storage/annotated/.gitkeep
+*.log
+.DS_Store
