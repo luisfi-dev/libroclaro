@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+# .env.production sí entra al contexto: Vite lo carga automáticamente al hacer
+# `npm run build` y permite definir VITE_API_URL sin pasar build-args manualmente.
+*.log
+.DS_Store
+.vite
+.git

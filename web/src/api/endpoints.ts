@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, apiUrl } from './client';
 import type {
   AnnotationKind,
   AnnotationMeta,
@@ -64,9 +64,9 @@ export const booksApi = {
   update: (id: string, data: Partial<Pick<Book, 'title' | 'description' | 'schoolYear' | 'subjectId' | 'gradeLevelId' | 'hidden'>>) =>
     api.patch<{ book: Book }>(`/api/books/${id}`, data).then((r) => r.data.book),
   remove: (id: string) => api.delete(`/api/books/${id}`),
-  coverUrl: (id: string) => `${api.defaults.baseURL ?? ''}/api/books/${id}/cover`,
+  coverUrl: (id: string) => apiUrl(`/api/books/${id}/cover`),
   pdfUrl: (id: string, annotated = false) =>
-    `${api.defaults.baseURL ?? ''}/api/books/${id}/pdf${annotated ? '?annotated=true' : ''}`,
+    apiUrl(`/api/books/${id}/pdf${annotated ? '?annotated=true' : ''}`),
 };
 
 // Annotations

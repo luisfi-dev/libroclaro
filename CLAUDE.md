@@ -158,9 +158,11 @@ menos la siguiente colección:
 ### Docker
 
 Se usará Docker para desplegar localmente los servicios de la aplicación. Se
-creará un _Dockerfile_ para crear la imagen de la API. Se usará un archivo
-_docker-compose.yaml_ para desplegar el contenedor de la API junto con los
-contenedores de Postgres y MongoDB.
+creará un _Dockerfile_ para crear la imagen de la API, y otro para la imagen del
+servidor front-end. Se usará un archivo _docker-compose.yaml_ para desplegar el
+contenedor del front-end y el de la API junto con los contenedores de Postgres y
+MongoDB.
 
 Usar la etiqueta luisfidev/libroclaro:latest para subir la imagen de la API a
-Docker Hub.
+Docker Hub, y la etiqueta luisfidev/libroclaro-frontend:latest para la imagen
+del front-end.

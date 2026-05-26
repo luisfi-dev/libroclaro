@@ -12,7 +12,17 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-export const apiBaseURL = import.meta.env.VITE_API_URL || '';
+// Normalizamos: quitamos barras finales del base URL para evitar `//api/...` cuando
+// se combina con un path que ya empieza con `/`. Muchos despliegues (CDN, App Platform)
+// tratan `//path` como una ruta distinta y devuelven 404/405.
+export const apiBaseURL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
+/** Construye una URL absoluta a la API, garantizando un único `/` de separación. */
+export function apiUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${apiBaseURL}${normalizedPath}`;
+}
 
 export const api = axios.create({
   baseURL: apiBaseURL,

@@ -1,6 +1,6 @@
 import { Box, BoxProps } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { apiBaseURL, getToken } from '../api/client';
+import { apiUrl, getToken } from '../api/client';
 
 const blobCache = new Map<string, string>();
 
@@ -17,7 +17,7 @@ interface Props extends Omit<BoxProps<'img'>, 'src' | 'component'> {
  * por src para evitar refetch entre navegaciones.
  */
 export function AuthedImage({ src, alt, fallback, ...rest }: Props) {
-  const fullUrl = src.startsWith('http') ? src : `${apiBaseURL}${src}`;
+  const fullUrl = apiUrl(src);
   const [objectUrl, setObjectUrl] = useState<string | null>(() => blobCache.get(fullUrl) ?? null);
   const [error, setError] = useState(false);
 

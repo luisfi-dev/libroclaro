@@ -57,11 +57,24 @@ services:
       DATABASE_URL: postgresql://libroclaro:libroclaro@postgres:5432/libroclaro?schema=public
       MONGO_URL: mongodb://libroclaro:libroclaro@mongo:27017/libroclaro?authSource=admin
       STORAGE_DIR: /app/storage
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:8080}
     ports:
       - "4000:4000"
     volumes:
       - api-storage:/app/storage
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    # La URL de la API se configura en web/.env.production y queda baked en el bundle.
+    image: luisfidev/libroclaro-frontend:latest
+    container_name: libroclaro-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
 
 volumes:
   postgres-data:

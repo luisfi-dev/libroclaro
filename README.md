@@ -9,7 +9,7 @@ complementario y suscripciones simuladas.
 libroclaro/
 ├── api/                  # API Express + TypeScript (Prisma/Postgres + Mongoose/Mongo)
 ├── web/                  # Front-end React + Vite + TypeScript (MUI + react-pdf)
-├── docker-compose.yaml   # Postgres + MongoDB + API
+├── docker-compose.yaml   # Postgres + MongoDB + API + Web
 └── CLAUDE.md             # Especificación del proyecto
 ```
 
@@ -125,9 +125,35 @@ Para apuntar el front a una API remota en build de producción:
 VITE_API_URL=https://api.libroclaro.example npm run build
 ```
 
-## Publicar la imagen Docker
+## Despliegue con Docker Compose completo
+
+`docker-compose.yaml` define cuatro servicios: `postgres`, `mongo`, `api` y `web`.
+
+```bash
+# Construye API y front (el front recibe VITE_API_URL como build-arg)
+VITE_API_URL=http://localhost:4000 docker compose build
+
+# Levanta todo
+docker compose up -d
+```
+
+- API: <http://localhost:4000>
+- Web (nginx con SPA fallback): <http://localhost:8080>
+
+Para producción, sobreescribe `VITE_API_URL` al construir el front para que apunte
+al host real de la API:
+
+```bash
+VITE_API_URL=https://api.libroclaro.example docker compose build web
+```
+
+## Publicar las imágenes Docker
 
 ```bash
 docker build -t luisfidev/libroclaro:latest ./api
 docker push luisfidev/libroclaro:latest
+
+docker build -t luisfidev/libroclaro-frontend:latest \
+  --build-arg VITE_API_URL=https://api.libroclaro.example ./web
+docker push luisfidev/libroclaro-frontend:latest
 ```
