@@ -3,6 +3,11 @@
 Plataforma web de libros de texto SEP con correcciones verificadas, material
 complementario y suscripciones simuladas.
 
+## Pruébalo en línea
+
+La plataforma está hosteada [aquí](https://libroclaro-kum56.ondigitalocean.app/)
+por medio de DigitalOcean.
+
 ## Estructura del repositorio
 
 ```
@@ -20,8 +25,8 @@ arranque de todo el sistema en local.
 
 - **API**: Express + TypeScript, Prisma + PostgreSQL, Mongoose + MongoDB,
   JWT/bcrypt, Multer, pdf-lib + sharp + pdf2pic.
-- **Web**: React 18 + Vite + TypeScript, MUI v6, TanStack Query, axios,
-  React Router, react-pdf.
+- **Web**: React 18 + Vite + TypeScript, MUI v6, TanStack Query, axios, React
+  Router, react-pdf.
 - **Infra**: Docker Compose (Postgres, Mongo, API). Imagen
   `luisfidev/libroclaro:latest`.
 
@@ -61,18 +66,18 @@ Web disponible en `http://localhost:5173`. Vite hace proxy de `/api/*` a
 
 ## Pantallas del front-end
 
-| Ruta | Acceso | Descripción |
-| --- | --- | --- |
-| `/login`, `/register` | Pública | Auth con validación de ≥18 años |
-| `/` | Autenticado | Catálogo con buscador y filtros (materia, grado, ciclo) |
-| `/books/:id` | Autenticado | Detalle del libro con portada y metadatos |
-| `/books/:id/read` | Autenticado | Lector PDF, hover de anotaciones, material por página, descarga |
-| `/profile` | Autenticado | Editar datos / eliminar cuenta (bloqueado para docentes institucionales) |
-| `/subscriptions` | Autenticado | Comparativa de planes y checkout simulado |
-| `/subscriptions/invoices` | Autenticado | Historial de facturas |
-| `/editor` | EDITOR | Listado de libros con subida, publicar/ocultar, eliminar, gestión de editores |
-| `/editor/books/:id` | EDITOR | Editor de anotaciones (drag para dibujar) y de material complementario |
-| `/institution` | ADMIN_INSTITUCION | Renombrar institución, crear/añadir/editar/eliminar miembros |
+| Ruta                      | Acceso            | Descripción                                                                   |
+| ------------------------- | ----------------- | ----------------------------------------------------------------------------- |
+| `/login`, `/register`     | Pública           | Auth con validación de ≥18 años                                               |
+| `/`                       | Autenticado       | Catálogo con buscador y filtros (materia, grado, ciclo)                       |
+| `/books/:id`              | Autenticado       | Detalle del libro con portada y metadatos                                     |
+| `/books/:id/read`         | Autenticado       | Lector PDF, hover de anotaciones, material por página, descarga               |
+| `/profile`                | Autenticado       | Editar datos / eliminar cuenta (bloqueado para docentes institucionales)      |
+| `/subscriptions`          | Autenticado       | Comparativa de planes y checkout simulado                                     |
+| `/subscriptions/invoices` | Autenticado       | Historial de facturas                                                         |
+| `/editor`                 | EDITOR            | Listado de libros con subida, publicar/ocultar, eliminar, gestión de editores |
+| `/editor/books/:id`       | EDITOR            | Editor de anotaciones (drag para dibujar) y de material complementario        |
+| `/institution`            | ADMIN_INSTITUCION | Renombrar institución, crear/añadir/editar/eliminar miembros                  |
 
 ### Flujo de anotaciones
 
@@ -83,20 +88,20 @@ Web disponible en `http://localhost:5173`. Vite hace proxy de `/api/*` a
 - En el **editor**: el botón "Añadir anotación" activa modo dibujo; al arrastrar
   un rectángulo se abre un diálogo con tipo (Error / Error parcial) y editor
   Markdown (con vista previa que conserva los marcadores `**`, `*`, etc.).
-- El PDF anotado se descarga desde el lector con el botón "Anotado"
-  (requiere Pro / Institucional).
+- El PDF anotado se descarga desde el lector con el botón "Anotado" (requiere
+  Pro / Institucional).
 
 ## Comandos útiles
 
-| Comando | Descripción |
-| --- | --- |
-| `docker compose up -d` | Levantar Postgres + Mongo + API |
-| `docker compose logs -f api` | Ver logs de la API |
-| `docker compose run --rm api npm run seed` | Re-sembrar materias/niveles/editor |
-| `cd api && npm run dev` | API en modo watch (fuera de Docker) |
-| `cd api && npm run prisma:studio` | Explorador visual de la BD |
-| `cd web && npm run dev` | Front-end en modo dev |
-| `cd web && npm run build` | Build de producción del front |
+| Comando                                    | Descripción                         |
+| ------------------------------------------ | ----------------------------------- |
+| `docker compose up -d`                     | Levantar Postgres + Mongo + API     |
+| `docker compose logs -f api`               | Ver logs de la API                  |
+| `docker compose run --rm api npm run seed` | Re-sembrar materias/niveles/editor  |
+| `cd api && npm run dev`                    | API en modo watch (fuera de Docker) |
+| `cd api && npm run prisma:studio`          | Explorador visual de la BD          |
+| `cd web && npm run dev`                    | Front-end en modo dev               |
+| `cd web && npm run build`                  | Build de producción del front       |
 
 ## Variables de entorno
 
@@ -125,29 +130,7 @@ Para apuntar el front a una API remota en build de producción:
 VITE_API_URL=https://api.libroclaro.example npm run build
 ```
 
-## Despliegue con Docker Compose completo
-
-`docker-compose.yaml` define cuatro servicios: `postgres`, `mongo`, `api` y `web`.
-
-```bash
-# Construye API y front (el front recibe VITE_API_URL como build-arg)
-VITE_API_URL=http://localhost:4000 docker compose build
-
-# Levanta todo
-docker compose up -d
-```
-
-- API: <http://localhost:4000>
-- Web (nginx con SPA fallback): <http://localhost:8080>
-
-Para producción, sobreescribe `VITE_API_URL` al construir el front para que apunte
-al host real de la API:
-
-```bash
-VITE_API_URL=https://api.libroclaro.example docker compose build web
-```
-
-## Publicar las imágenes Docker
+## Publicar la imagen Docker
 
 ```bash
 docker build -t luisfidev/libroclaro:latest ./api
