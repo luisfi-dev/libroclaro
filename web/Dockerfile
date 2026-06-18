@@ -3,7 +3,7 @@ FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --no-audit --no-fund
+RUN npm install --no-audit --no-fund --registry=https://registry.yarnpkg.com
 
 COPY tsconfig.json vite.config.ts index.html ./
 COPY public ./public

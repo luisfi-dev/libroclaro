@@ -156,7 +156,7 @@ export async function buildAnnotatedPdf(
 
     sorted.forEach((ann, idx) => {
       const ref = idx + 1;
-      const header = `**[${ref}]** _(pág. ${ann.page} · ${ann.kind === 'ERROR' ? 'Error' : 'Error parcial'})_`;
+      const header = `**[${ref}]** *(pág. ${ann.page} · ${ann.kind === 'ERROR' ? 'Error' : 'Error parcial'})*`;
       cursor = renderMarkdown(ctx, cursor, header, { baseFontSize: 11 });
       cursor = renderMarkdown(ctx, cursor, ann.content, { baseFontSize: 11 });
       cursor.y -= 10;

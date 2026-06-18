@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm install --no-audit --no-fund
+RUN npm install --no-audit --no-fund --registry=https://registry.yarnpkg.com
 RUN npx prisma generate
 
 COPY tsconfig.json ./
@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm install --omit=dev --no-audit --no-fund
+RUN npm install --omit=dev --no-audit --no-fund --registry=https://registry.yarnpkg.com
 RUN npx prisma generate
 
 COPY --from=build /app/dist ./dist

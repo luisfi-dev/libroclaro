@@ -272,7 +272,10 @@ export function renderMarkdown(
 ): RenderLineCursor {
   const fontSize = options.baseFontSize ?? 11;
   const lineHeight = options.baseLineHeight ?? fontSize + 3;
-  const lines = source.replace(/\r\n/g, '\n').split('\n');
+  // Normalize to NFC so accented letters arrive as single code points. The
+  // standard PDF fonts use WinAnsi, which can encode "á" (U+00E1) but not the
+  // decomposed form "a" + combining accent (U+0301) that macOS often produces.
+  const lines = source.normalize('NFC').replace(/\r\n/g, '\n').split('\n');
 
   let current = cursor;
   let inList = false;
