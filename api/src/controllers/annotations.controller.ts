@@ -6,6 +6,7 @@ import { HttpError } from '../utils/HttpError';
 import { serializeAnnotation } from '../utils/serializers';
 import { safeUnlink, bookAnnotatedPath } from '../services/storage.service';
 import { consumeAnnotationView, getAnnotationQuota } from '../services/quota.service';
+import { logger } from '../config/logger';
 
 const createSchema = z.object({
   page: z.coerce.number().int().positive(),
@@ -69,6 +70,8 @@ export async function createAnnotation(req: Request, res: Response): Promise<voi
     data: { ...data, bookId: book.id, authorId: req.user.id },
   });
   await safeUnlink(bookAnnotatedPath(book.id));
+  // DEBUG #2: Anotacion creada
+  logger.debug('Anotacion creada', { annotationId: annotation.id, bookId: book.id, page: data.page, kind: data.kind });
   res.status(201).json({ annotation: serializeAnnotation(annotation) });
 }
 
@@ -87,5 +90,7 @@ export async function deleteAnnotation(req: Request, res: Response): Promise<voi
   if (!annotation) throw HttpError.notFound('Anotación no encontrada');
   await prisma.annotation.delete({ where: { id: annotation.id } });
   await safeUnlink(bookAnnotatedPath(annotation.bookId));
+  // DEBUG #3: Anotacion eliminada
+  logger.debug('Anotacion eliminada', { annotationId: annotation.id, bookId: annotation.bookId });
   res.status(204).end();
 }

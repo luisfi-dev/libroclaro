@@ -4,6 +4,7 @@ import { prisma } from '../config/prisma';
 import { HttpError } from '../utils/HttpError';
 import { comparePassword, hashPassword, isAtLeast18, signToken } from '../services/auth.service';
 import { serializeUser } from '../utils/serializers';
+import { logger } from '../config/logger';
 
 const registerSchema = z.object({
   fullName: z.string().min(2).max(120),
@@ -26,6 +27,8 @@ export async function register(req: Request, res: Response): Promise<void> {
   const birthDate = new Date(data.birthDate);
 
   if (!isAtLeast18(birthDate)) {
+    // WARN #2: Registro rechazado por edad insuficiente
+    logger.warn('Registro rechazado: usuario menor de 18 anios');
     throw HttpError.badRequest('Debes tener al menos 18 años para registrarte');
   }
 
@@ -42,6 +45,8 @@ export async function register(req: Request, res: Response): Promise<void> {
   });
 
   const token = signToken(user);
+  // INFO #4: Nuevo usuario registrado
+  logger.info('Nuevo usuario registrado', { userId: user.id, role: 'DOCENTE' });
   res.status(201).json({ token, user: serializeUser(user) });
 }
 
@@ -49,12 +54,21 @@ export async function login(req: Request, res: Response): Promise<void> {
   const data = loginSchema.parse(req.body);
 
   const user = await prisma.user.findUnique({ where: { email: data.email } });
-  if (!user) throw HttpError.unauthorized('Credenciales inválidas');
+  if (!user) {
+    // WARN #3: Intento de login con credenciales invalidas
+    logger.warn('Intento de login fallido: credenciales invalidas');
+    throw HttpError.unauthorized('Credenciales inválidas');
+  }
 
   const ok = await comparePassword(data.password, user.passwordHash);
-  if (!ok) throw HttpError.unauthorized('Credenciales inválidas');
+  if (!ok) {
+    logger.warn('Intento de login fallido: credenciales invalidas');
+    throw HttpError.unauthorized('Credenciales inválidas');
+  }
 
   const token = signToken(user);
+  // INFO #5: Inicio de sesion exitoso
+  logger.info('Inicio de sesion exitoso', { userId: user.id, role: user.role });
   res.json({ token, user: serializeUser(user) });
 }
 

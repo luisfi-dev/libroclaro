@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { HttpError } from '../utils/HttpError';
+import { logger } from '../config/logger';
 
 export function errorHandler(
   err: unknown,
@@ -21,6 +22,9 @@ export function errorHandler(
     return;
   }
 
-  console.error('Error no manejado:', err);
+  // ERROR #2: Error no manejado (500)
+  const message = err instanceof Error ? err.message : 'Error desconocido';
+  const stack = err instanceof Error ? err.stack : undefined;
+  logger.error('Error no manejado en el servidor', { error: message, stack });
   res.status(500).json({ error: 'Error interno del servidor' });
 }

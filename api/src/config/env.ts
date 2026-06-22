@@ -10,6 +10,7 @@ const schema = z.object({
   MONGO_URL: z.string().url(),
   STORAGE_DIR: z.string().default('./storage'),
   CORS_ORIGIN: z.string().default('*'),
+  APPINSIGHTS_CONNECTION_STRING: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);

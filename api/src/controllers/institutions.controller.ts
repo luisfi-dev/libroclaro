@@ -5,6 +5,7 @@ import { prisma } from '../config/prisma';
 import { HttpError } from '../utils/HttpError';
 import { hashPassword, isAtLeast18 } from '../services/auth.service';
 import { serializeInstitution, serializeUser } from '../utils/serializers';
+import { logger } from '../config/logger';
 
 const updateInstitutionSchema = z.object({
   name: z.string().min(2).max(200),
@@ -80,6 +81,8 @@ export async function createMember(req: Request, res: Response): Promise<void> {
       institutionId: inst.id,
     },
   });
+  // DEBUG #5: Miembro creado en institucion
+  logger.debug('Miembro creado en institucion', { memberId: member.id, institutionId: inst.id });
   res.status(201).json({ user: serializeUser(member) });
 }
 
@@ -101,6 +104,8 @@ export async function addExistingMember(req: Request, res: Response): Promise<vo
     where: { id: target.id },
     data: { institutionId: inst.id, plan: SubscriptionPlan.PRO },
   });
+  // DEBUG #6: Miembro existente agregado a institucion
+  logger.debug('Miembro existente agregado a institucion', { memberId: target.id, institutionId: inst.id });
   res.json({ user: serializeUser(updated) });
 }
 

@@ -12,6 +12,7 @@ import {
 } from '../services/storage.service';
 import { buildAnnotatedPdf, generateCoverPng, getPageCount } from '../services/pdf.service';
 import { serializeBook } from '../utils/serializers';
+import { logger } from '../config/logger';
 
 const createBookSchema = z.object({
   title: z.string().min(1).max(300),
@@ -63,6 +64,8 @@ export async function listBooks(req: Request, res: Response): Promise<void> {
     orderBy: [{ gradeLevel: { order: 'asc' } }, { title: 'asc' }],
   });
 
+  // DEBUG #1: Consulta de libros ejecutada
+  logger.debug('Consulta de libros ejecutada', { resultCount: books.length, filters: { subjectId: params.subjectId, gradeLevelId: params.gradeLevelId, schoolYear: params.schoolYear, q: params.q } });
   res.json({ books: books.map(serializeBook) });
 }
 
@@ -73,6 +76,8 @@ export async function getBook(req: Request, res: Response): Promise<void> {
   });
   if (!book) throw HttpError.notFound('Libro no encontrado');
   if (book.hidden && req.user?.role !== UserRole.EDITOR) {
+    // WARN #4: Intento de acceso a libro oculto
+    logger.warn('Intento de acceso a libro oculto', { bookId: req.params.id });
     throw HttpError.notFound('Libro no encontrado');
   }
   res.json({ book: serializeBook(book) });
@@ -112,7 +117,8 @@ export async function createBook(req: Request, res: Response): Promise<void> {
   try {
     pageCount = await getPageCount(pdfPath);
   } catch (err) {
-    console.warn('No se pudo determinar pageCount:', err);
+    // ERROR #5: Fallo al extraer conteo de paginas del PDF
+    logger.error('Fallo al extraer conteo de paginas del PDF', { bookId: book.id, error: (err as Error).message });
   }
 
   await generateCoverPng(pdfPath, coverPath, book.title);
@@ -123,6 +129,8 @@ export async function createBook(req: Request, res: Response): Promise<void> {
     include: { subject: true, gradeLevel: true },
   });
 
+  // INFO #6: Libro creado exitosamente
+  logger.info('Libro creado', { bookId: updated.id, pageCount });
   res.status(201).json({ book: serializeBook(updated) });
 }
 
@@ -142,11 +150,16 @@ export async function deleteBook(req: Request, res: Response): Promise<void> {
   const book = await prisma.book.findUnique({ where: { id: req.params.id } });
   if (!book) throw HttpError.notFound('Libro no encontrado');
   await prisma.book.delete({ where: { id: book.id } });
-  await Promise.all([
-    safeUnlink(bookPdfPath(book.id)),
-    safeUnlink(bookCoverPath(book.id)),
-    safeUnlink(bookAnnotatedPath(book.id)),
-  ]);
+  try {
+    await Promise.all([
+      safeUnlink(bookPdfPath(book.id)),
+      safeUnlink(bookCoverPath(book.id)),
+      safeUnlink(bookAnnotatedPath(book.id)),
+    ]);
+  } catch (err) {
+    // ERROR #6: Fallo al limpiar archivos del libro eliminado
+    logger.error('Fallo al limpiar archivos del libro eliminado', { bookId: book.id, error: (err as Error).message });
+  }
   res.status(204).end();
 }
 

@@ -5,6 +5,7 @@ import { prisma } from '../config/prisma';
 import { HttpError } from '../utils/HttpError';
 import { hashPassword, isAtLeast18 } from '../services/auth.service';
 import { serializeUser } from '../utils/serializers';
+import { logger } from '../config/logger';
 
 const updateProfileSchema = z.object({
   fullName: z.string().min(2).max(120).optional(),
@@ -51,6 +52,8 @@ export async function updateMe(req: Request, res: Response): Promise<void> {
     data: updateData,
   });
 
+  // DEBUG (extra): Perfil de usuario actualizado
+  logger.debug('Perfil de usuario actualizado', { userId: user.id });
   res.json({ user: serializeUser(user) });
 }
 

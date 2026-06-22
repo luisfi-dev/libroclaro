@@ -4,6 +4,7 @@ import os from 'os';
 import sharp from 'sharp';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { embedMarkdownFonts, renderMarkdown, type RenderLineCursor } from './markdownPdf.service';
+import { logger } from '../config/logger';
 
 export async function getPageCount(pdfPath: string): Promise<number> {
   const bytes = await fs.readFile(pdfPath);
@@ -33,7 +34,8 @@ export async function generateCoverPng(pdfPath: string, outPath: string, bookTit
     await sharp(generatedPath).resize(600, 800, { fit: 'inside' }).png().toFile(outPath);
     await fs.rm(tmpDir, { recursive: true, force: true });
   } catch (err) {
-    console.warn('No se pudo renderizar la portada con pdf2pic, generando placeholder:', err);
+    // ERROR #7: Fallo al renderizar portada con pdf2pic
+    logger.error('Fallo al renderizar portada con pdf2pic, usando placeholder', { error: (err as Error).message });
     await generatePlaceholderCover(outPath, bookTitle);
   }
 }

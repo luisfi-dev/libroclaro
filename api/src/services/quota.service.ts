@@ -1,6 +1,7 @@
 import { SubscriptionPlan } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { HttpError } from '../utils/HttpError';
+import { logger } from '../config/logger';
 
 export const FREE_MONTHLY_ANNOTATION_LIMIT = 20;
 
@@ -56,6 +57,8 @@ export async function consumeAnnotationView(
       where: { userId, viewedAt: { gte: monthStart } },
     });
     if (usedSoFar >= FREE_MONTHLY_ANNOTATION_LIMIT) {
+      // WARN #7: Usuario alcanzo limite de cuota de anotaciones
+      logger.warn('Usuario alcanzo limite mensual de anotaciones', { userId, used: usedSoFar, limit: FREE_MONTHLY_ANNOTATION_LIMIT });
       throw HttpError.payment(
         `Has alcanzado el límite de ${FREE_MONTHLY_ANNOTATION_LIMIT} correcciones del plan Gratuito este mes. Actualiza a Pro para consultas ilimitadas.`,
       );
