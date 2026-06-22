@@ -78,6 +78,7 @@ export default function BookDetailPage() {
               startIcon={<MenuBookIcon />}
               onClick={() => navigate(`/books/${book.id}/read`)}
               size="large"
+              data-testid="book-open"
             >
               Abrir libro
             </Button>
@@ -86,6 +87,7 @@ export default function BookDetailPage() {
                 variant="outlined"
                 startIcon={<EditIcon />}
                 onClick={() => navigate(`/editor/books/${book.id}`)}
+                data-testid="book-edit"
               >
                 Editar libro
               </Button>

@@ -70,11 +70,13 @@ export default function InstitutionPage() {
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
             fullWidth
+            inputProps={{ 'data-testid': 'institution-name' }}
           />
           <Button
             variant="contained"
             disabled={!editName.trim() || editName === institutionQuery.data?.name}
             onClick={() => updateNameMut.mutate(editName)}
+            data-testid="institution-save"
           >
             Guardar
           </Button>
@@ -84,10 +86,19 @@ export default function InstitutionPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h2">Miembros docentes</Typography>
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" onClick={() => setMemberDialog({ mode: 'existing' })}>
+          <Button
+            variant="outlined"
+            onClick={() => setMemberDialog({ mode: 'existing' })}
+            data-testid="member-add-existing"
+          >
             Añadir existente
           </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setMemberDialog({ mode: 'create' })}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setMemberDialog({ mode: 'create' })}
+            data-testid="member-new"
+          >
             Nuevo docente
           </Button>
         </Stack>
@@ -105,12 +116,12 @@ export default function InstitutionPage() {
           </TableHead>
           <TableBody>
             {membersQuery.data?.map((m) => (
-              <TableRow key={m.id} hover>
+              <TableRow key={m.id} hover data-testid="member-row" data-member-email={m.email}>
                 <TableCell>{m.fullName}</TableCell>
                 <TableCell>{m.email}</TableCell>
                 <TableCell>{m.birthDate}</TableCell>
                 <TableCell align="right">
-                  <IconButton onClick={() => setMemberDialog({ mode: 'edit', user: m })}>
+                  <IconButton onClick={() => setMemberDialog({ mode: 'edit', user: m })} data-testid="member-edit">
                     <EditIcon />
                   </IconButton>
                   <IconButton
@@ -118,6 +129,7 @@ export default function InstitutionPage() {
                     onClick={() => {
                       if (confirm(`¿Eliminar a ${m.fullName}?`)) removeMemberMut.mutate(m.id);
                     }}
+                    data-testid="member-delete"
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -215,7 +227,13 @@ function MemberDialog({ config, onClose, onSaved }: MemberDialogProps) {
         <Stack spacing={2} sx={{ mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
           {config.mode !== 'existing' && (
-            <TextField label="Nombre completo" value={fullName} onChange={(e) => setFullName(e.target.value)} fullWidth />
+            <TextField
+              label="Nombre completo"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              fullWidth
+              inputProps={{ 'data-testid': 'member-fullname' }}
+            />
           )}
           <TextField
             label="Correo"
@@ -223,7 +241,7 @@ function MemberDialog({ config, onClose, onSaved }: MemberDialogProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             fullWidth
-            disabled={config.mode === 'existing' ? false : false}
+            inputProps={{ 'data-testid': 'member-email' }}
           />
           {config.mode !== 'existing' && (
             <>
@@ -234,6 +252,7 @@ function MemberDialog({ config, onClose, onSaved }: MemberDialogProps) {
                 onChange={(e) => setBirthDate(e.target.value)}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ 'data-testid': 'member-birthdate' }}
               />
               <TextField
                 label={config.mode === 'edit' ? 'Nueva contraseña (opcional)' : 'Contraseña'}
@@ -241,6 +260,7 @@ function MemberDialog({ config, onClose, onSaved }: MemberDialogProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 fullWidth
+                inputProps={{ 'data-testid': 'member-password' }}
               />
             </>
           )}
@@ -248,7 +268,7 @@ function MemberDialog({ config, onClose, onSaved }: MemberDialogProps) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
+        <Button variant="contained" onClick={handleSave} disabled={saving} data-testid="member-save">
           {saving ? 'Guardando...' : 'Guardar'}
         </Button>
       </DialogActions>

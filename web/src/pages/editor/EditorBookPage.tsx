@@ -178,6 +178,7 @@ export default function EditorBookPage() {
               }}
               color="primary"
               size="small"
+              data-testid="annotation-draw-toggle"
             >
               {drawing ? 'Cancelar dibujo' : 'Añadir anotación'}
             </ToggleButton>
@@ -276,7 +277,8 @@ export default function EditorBookPage() {
           )}
           <Stack spacing={1}>
             {annotationsQuery.data?.annotations.map((a) => (
-              <Paper key={a.id} variant="outlined" sx={{ p: 1.5 }}>
+              <Paper key={a.id} variant="outlined" sx={{ p: 1.5 }} data-testid="annotation-item">
+
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                   <Box sx={{ flex: 1 }}>
                     <Chip

@@ -62,7 +62,7 @@ export default function InvoicesPage() {
           </TableHead>
           <TableBody>
             {data?.map((inv) => (
-              <TableRow key={inv.id} hover>
+              <TableRow key={inv.id} hover data-testid="invoice-row">
                 <TableCell>{formatDate(inv.createdAt)}</TableCell>
                 <TableCell>{inv.plan}</TableCell>
                 <TableCell>

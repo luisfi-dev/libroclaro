@@ -105,19 +105,32 @@ export default function SubscriptionsPage() {
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
         <Typography variant="h1">Planes de suscripción</Typography>
-        <Button variant="text" onClick={() => navigate('/subscriptions/invoices')}>
+        <Button
+          variant="text"
+          onClick={() => navigate('/subscriptions/invoices')}
+          data-testid="subscriptions-invoices-link"
+        >
           Ver mis facturas
         </Button>
       </Stack>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)} data-testid="subscriptions-error">
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)} data-testid="subscriptions-success">
+          {success}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {PLANS.map((plan) => (
           <Grid item xs={12} md={4} key={plan.key}>
             <Card
               elevation={plan.highlight ? 6 : 1}
+              data-testid={`plan-card-${plan.key}`}
               sx={{
                 height: '100%',
                 display: 'flex',
@@ -150,6 +163,7 @@ export default function SubscriptionsPage() {
                   variant={plan.highlight ? 'contained' : 'outlined'}
                   disabled={currentPlan === plan.key}
                   onClick={() => setSelectedPlan(plan.key)}
+                  data-testid={`plan-select-${plan.key}`}
                 >
                   {currentPlan === plan.key ? 'Plan actual' : 'Cambiar a este plan'}
                 </Button>
@@ -217,6 +231,7 @@ function CheckoutDialog({ plan, onClose, onConfirm, submitting }: CheckoutDialog
               onChange={(e) => setInstitutionName(e.target.value)}
               fullWidth
               required
+              inputProps={{ 'data-testid': 'checkout-institution' }}
             />
           )}
           {needsCard && (
@@ -230,12 +245,14 @@ function CheckoutDialog({ plan, onClose, onConfirm, submitting }: CheckoutDialog
                 onChange={(e) => setCardNumber(e.target.value)}
                 placeholder="4242 4242 4242 4242"
                 fullWidth
+                inputProps={{ 'data-testid': 'checkout-card-number' }}
               />
               <TextField
                 label="Titular de la tarjeta"
                 value={cardHolder}
                 onChange={(e) => setCardHolder(e.target.value)}
                 fullWidth
+                inputProps={{ 'data-testid': 'checkout-card-holder' }}
               />
               <Stack direction="row" spacing={2}>
                 <TextField
@@ -244,6 +261,7 @@ function CheckoutDialog({ plan, onClose, onConfirm, submitting }: CheckoutDialog
                   onChange={(e) => setCardExpiry(e.target.value)}
                   placeholder="12/29"
                   fullWidth
+                  inputProps={{ 'data-testid': 'checkout-card-expiry' }}
                 />
                 <TextField
                   label="CVC"
@@ -251,6 +269,7 @@ function CheckoutDialog({ plan, onClose, onConfirm, submitting }: CheckoutDialog
                   onChange={(e) => setCardCvc(e.target.value)}
                   placeholder="123"
                   sx={{ width: 120 }}
+                  inputProps={{ 'data-testid': 'checkout-card-cvc' }}
                 />
               </Stack>
             </>
@@ -259,7 +278,7 @@ function CheckoutDialog({ plan, onClose, onConfirm, submitting }: CheckoutDialog
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button variant="contained" onClick={handleConfirm} disabled={submitting}>
+        <Button variant="contained" onClick={handleConfirm} disabled={submitting} data-testid="checkout-confirm">
           {submitting ? 'Procesando...' : 'Confirmar'}
         </Button>
       </DialogActions>

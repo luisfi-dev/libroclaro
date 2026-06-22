@@ -79,7 +79,7 @@ export default function ProfilePage() {
       </Typography>
 
       {isLocked && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={{ mb: 2 }} data-testid="profile-locked-alert">
           Perteneces a una institución. Solo el administrador puede modificar tus datos.
         </Alert>
       )}
@@ -99,6 +99,7 @@ export default function ProfilePage() {
               onChange={(e) => setFullName(e.target.value)}
               disabled={isLocked}
               fullWidth
+              inputProps={{ 'data-testid': 'profile-fullname' }}
             />
             <TextField
               label="Correo electrónico"
@@ -107,6 +108,7 @@ export default function ProfilePage() {
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLocked}
               fullWidth
+              inputProps={{ 'data-testid': 'profile-email' }}
             />
             <DatePicker
               label="Fecha de nacimiento"
@@ -127,7 +129,7 @@ export default function ProfilePage() {
               helperText="Deja en blanco para no cambiar"
             />
             <Stack direction="row" spacing={2}>
-              <Button type="submit" variant="contained" disabled={isLocked || saving}>
+              <Button type="submit" variant="contained" disabled={isLocked || saving} data-testid="profile-save">
                 Guardar cambios
               </Button>
               <Button
@@ -135,6 +137,7 @@ export default function ProfilePage() {
                 variant="outlined"
                 disabled={isLocked}
                 onClick={() => setConfirmOpen(true)}
+                data-testid="profile-delete"
               >
                 Eliminar cuenta
               </Button>

@@ -140,7 +140,12 @@ export default function BookReaderPage() {
         </Box>
         <Stack direction="row" spacing={1}>
           <Tooltip title="Descargar PDF original">
-            <Button startIcon={<DownloadIcon />} onClick={() => handleDownload(false)} variant="outlined">
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => handleDownload(false)}
+              variant="outlined"
+              data-testid="reader-download-original"
+            >
               Original
             </Button>
           </Tooltip>
@@ -151,6 +156,7 @@ export default function BookReaderPage() {
                 onClick={() => handleDownload(true)}
                 variant="contained"
                 disabled={!canAnnotatedDownload}
+                data-testid="reader-download-annotated"
               >
                 Anotado
               </Button>
@@ -162,13 +168,13 @@ export default function BookReaderPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {quota && !quota.unlimited && (
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ mb: 2 }} data-testid="reader-quota">
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="caption" color="text.secondary">
               Correcciones consultadas este mes: {quota.used} / {quota.limit}
             </Typography>
             {quota.remaining === 0 && (
-              <Button size="small" onClick={() => navigate('/subscriptions')}>
+              <Button size="small" onClick={() => navigate('/subscriptions')} data-testid="reader-upgrade">
                 Mejorar a Pro
               </Button>
             )}

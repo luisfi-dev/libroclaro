@@ -120,3 +120,103 @@ jobs:
         run: npx prisma generate
       - name: Ejecutar pruebas de integración
         run: npm run test:integration
+
+  # -------------------------------------------------------------------------
+  # E2E: Cypress contra la API y el front reales (equivalente al docker compose
+  # local). Postgres y Mongo se proveen como service containers; la API y el
+  # servidor de Vite se arrancan en background.
+  # -------------------------------------------------------------------------
+  e2e:
+    name: E2E (Cypress + API + Web)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: libroclaro
+          POSTGRES_PASSWORD: libroclaro
+          POSTGRES_DB: libroclaro
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U libroclaro"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      mongo:
+        image: mongo:7
+        env:
+          MONGO_INITDB_ROOT_USERNAME: libroclaro
+          MONGO_INITDB_ROOT_PASSWORD: libroclaro
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: development
+      JWT_SECRET: ci-secret-libroclaro-e2e-1234567890
+      JWT_EXPIRES_IN: 7d
+      DATABASE_URL: postgresql://libroclaro:libroclaro@localhost:5432/libroclaro?schema=public
+      MONGO_URL: mongodb://libroclaro:libroclaro@localhost:27017/libroclaro?authSource=admin
+      STORAGE_DIR: ./storage
+      CORS_ORIGIN: http://localhost:5173
+      # La suite hace muchos logins legítimos; se desactiva el rate-limit solo aquí.
+      RATE_LIMIT_DISABLED: 'true'
+      # URL de la API que el front (Vite) y Cypress consumen.
+      VITE_API_URL: http://localhost:4000
+      CYPRESS_API_URL: http://localhost:4000
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - name: Instalar dependencias de la API
+        working-directory: api
+        run: npm ci
+      - name: Generar el cliente Prisma
+        working-directory: api
+        run: npx prisma generate
+      - name: Aplicar migraciones
+        working-directory: api
+        run: npx prisma migrate deploy
+      - name: Sembrar la base de datos
+        working-directory: api
+        run: npm run seed
+      - name: Arrancar la API en segundo plano
+        working-directory: api
+        run: |
+          nohup npm run dev > /tmp/libroclaro-api.log 2>&1 &
+          echo "API arrancada (PID $!)"
+      - name: Esperar a que la API responda
+        run: npx wait-on -t 120000 http://localhost:4000/api/health
+      - name: Ejecutar Cypress (levanta el front de Vite)
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: web
+          start: npm run dev
+          wait-on: http://localhost:5173
+          wait-on-timeout: 120
+          browser: electron
+      - name: Publicar capturas de fallos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: web/cypress/screenshots
+          if-no-files-found: ignore
+      - name: Publicar log de la API
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-log
+          path: /tmp/libroclaro-api.log
+          if-no-files-found: ignore

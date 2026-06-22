@@ -27,11 +27,16 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true }));
 
+  // El rate-limit de login (A07) se mantiene activo por defecto. Solo se puede
+  // desactivar de forma explícita (RATE_LIMIT_DISABLED=true) para suites E2E que
+  // realizan muchos inicios de sesión legítimos contra el entorno local.
+  const rateLimitDisabled = process.env.RATE_LIMIT_DISABLED === 'true';
   const loginLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => rateLimitDisabled,
     message: { error: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en un minuto.' },
   });
   app.use('/api/auth/login', loginLimiter);

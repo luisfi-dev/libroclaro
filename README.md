@@ -119,6 +119,36 @@ La suite de integración crea la BD `libroclaro_test`, aplica `prisma migrate
 deploy` y el seed automáticamente (ver `api/test/integration/globalSetup.ts`), y
 limpia el estado entre cada test.
 
+### Pruebas End-to-End (Cypress)
+
+Las pruebas E2E (`web/cypress/e2e/`) cubren los flujos P0 y P1 del
+[TESTPLAN.md](TESTPLAN.md) en un navegador real contra la API y las BD reales del
+entorno local de `docker compose`. Usan selectores `data-testid` y preparan los
+datos con `cy.request`/`cy.task` (registro de usuarios, subida de libros
+multipart, anotaciones y suscripciones).
+
+```bash
+# 1. Bases de datos en contenedores
+docker compose up -d postgres mongo
+
+# 2. Migrar y sembrar (editor@libroclaro.test / editor1234)
+cd api && npm run prisma:deploy && npm run seed
+
+# 3. Arrancar API y Web (en dos terminales).
+#    RATE_LIMIT_DISABLED solo se usa aquí: la suite hace muchos logins legítimos.
+cd api && RATE_LIMIT_DISABLED=true npm run dev      # http://localhost:4000
+cd web && npm run dev                               # http://localhost:5173
+
+# 4. Ejecutar Cypress (headless o interactivo)
+cd web && npm run cy:run     # headless
+cd web && npm run cy:open    # interactivo
+```
+
+Cada prueba aísla su estado con usuarios de correo único; el seed
+(materias, grados y el editor inicial) se preserva. El lector PDF (react-pdf) se
+valida de forma pragmática —cuota Free y anotaciones vía API + aserciones de UI
+que no dependen del render del canvas— para evitar inestabilidad (TESTPLAN §13).
+
 ## Comandos útiles
 
 | Comando                                    | Descripción                         |

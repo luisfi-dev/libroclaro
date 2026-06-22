@@ -89,7 +89,7 @@ export default function MainLayout() {
                 size="small"
                 sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: 'white' }}
               />
-              <IconButton onClick={handleOpen} sx={{ p: 0, ml: 1 }}>
+              <IconButton onClick={handleOpen} sx={{ p: 0, ml: 1 }} data-testid="nav-user-menu">
                 <Avatar sx={{ bgcolor: 'secondary.main', width: 36, height: 36 }}>{initials}</Avatar>
               </IconButton>
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
@@ -98,6 +98,7 @@ export default function MainLayout() {
                     navigate('/profile');
                     handleClose();
                   }}
+                  data-testid="nav-profile"
                 >
                   Mi perfil
                 </MenuItem>
@@ -109,7 +110,9 @@ export default function MainLayout() {
                 >
                   Mis facturas
                 </MenuItem>
-                <MenuItem onClick={handleLogout}>Cerrar sesión</MenuItem>
+                <MenuItem onClick={handleLogout} data-testid="nav-logout">
+                  Cerrar sesión
+                </MenuItem>
               </Menu>
             </Box>
           )}

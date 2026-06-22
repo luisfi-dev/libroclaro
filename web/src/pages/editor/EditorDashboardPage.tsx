@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type HTMLAttributes } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -61,10 +61,15 @@ export default function EditorDashboardPage() {
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
         <Typography variant="h1">Panel del editor</Typography>
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" onClick={() => setEditorDialogOpen(true)}>
+          <Button variant="outlined" onClick={() => setEditorDialogOpen(true)} data-testid="editor-manage-editors">
             Gestionar editores
           </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setUploadOpen(true)}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setUploadOpen(true)}
+            data-testid="editor-new-book"
+          >
             Nuevo libro
           </Button>
         </Stack>
@@ -86,7 +91,7 @@ export default function EditorDashboardPage() {
           </TableHead>
           <TableBody>
             {booksQuery.data?.map((book) => (
-              <TableRow key={book.id} hover>
+              <TableRow key={book.id} hover data-testid="book-row" data-book-id={book.id}>
                 <TableCell>
                   <Typography
                     component={RouterLink}
@@ -106,10 +111,11 @@ export default function EditorDashboardPage() {
                     color={book.hidden ? 'warning' : 'success'}
                     onClick={() => togglePublishMut.mutate({ id: book.id, hidden: !book.hidden })}
                     clickable
+                    data-testid="book-toggle-hidden"
                   />
                 </TableCell>
                 <TableCell align="right">
-                  <IconButton onClick={() => navigate(`/editor/books/${book.id}`)}>
+                  <IconButton onClick={() => navigate(`/editor/books/${book.id}`)} data-testid="book-edit-link">
                     <EditIcon />
                   </IconButton>
                   <IconButton
@@ -117,6 +123,7 @@ export default function EditorDashboardPage() {
                     onClick={() => {
                       if (confirm(`¿Eliminar "${book.title}"?`)) deleteMut.mutate(book.id);
                     }}
+                    data-testid="book-delete"
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -196,7 +203,14 @@ function UploadBookDialog({ open, onClose }: { open: boolean; onClose: () => voi
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
-          <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} required fullWidth />
+          <TextField
+            label="Título"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            fullWidth
+            inputProps={{ 'data-testid': 'upload-title' }}
+          />
           <TextField
             label="Descripción"
             value={description}
@@ -205,6 +219,7 @@ function UploadBookDialog({ open, onClose }: { open: boolean; onClose: () => voi
             fullWidth
             multiline
             rows={3}
+            inputProps={{ 'data-testid': 'upload-description' }}
           />
           <TextField
             label="Ciclo escolar"
@@ -213,10 +228,16 @@ function UploadBookDialog({ open, onClose }: { open: boolean; onClose: () => voi
             placeholder="2023-2024"
             required
             fullWidth
+            inputProps={{ 'data-testid': 'upload-year' }}
           />
           <FormControl fullWidth required>
             <InputLabel>Materia</InputLabel>
-            <Select label="Materia" value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+            <Select
+              label="Materia"
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+              SelectDisplayProps={{ 'data-testid': 'upload-subject' } as HTMLAttributes<HTMLDivElement>}
+            >
               {subjectsQuery.data?.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
                   {s.name}
@@ -226,7 +247,12 @@ function UploadBookDialog({ open, onClose }: { open: boolean; onClose: () => voi
           </FormControl>
           <FormControl fullWidth required>
             <InputLabel>Grado</InputLabel>
-            <Select label="Grado" value={gradeLevelId} onChange={(e) => setGradeLevelId(e.target.value)}>
+            <Select
+              label="Grado"
+              value={gradeLevelId}
+              onChange={(e) => setGradeLevelId(e.target.value)}
+              SelectDisplayProps={{ 'data-testid': 'upload-grade' } as HTMLAttributes<HTMLDivElement>}
+            >
               {gradesQuery.data?.map((g) => (
                 <MenuItem key={g.id} value={g.id}>
                   {g.name}
@@ -241,13 +267,14 @@ function UploadBookDialog({ open, onClose }: { open: boolean; onClose: () => voi
               accept="application/pdf"
               hidden
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              data-testid="upload-file"
             />
           </Button>
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={submitting}>
+        <Button variant="contained" onClick={handleSubmit} disabled={submitting} data-testid="upload-submit">
           {submitting ? 'Subiendo...' : 'Subir libro'}
         </Button>
       </DialogActions>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type HTMLAttributes } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -81,6 +81,7 @@ export default function CatalogPage() {
             color={includeHidden ? 'secondary' : 'default'}
             onClick={() => setIncludeHidden((v) => !v)}
             clickable
+            data-testid="catalog-toggle-hidden"
           />
         )}
       </Stack>
@@ -92,10 +93,16 @@ export default function CatalogPage() {
           onChange={(e) => setQ(e.target.value)}
           fullWidth
           placeholder="Título, materia, grado o ciclo (2023-2024)"
+          inputProps={{ 'data-testid': 'catalog-search' }}
         />
         <FormControl sx={{ minWidth: 180 }}>
           <InputLabel>Materia</InputLabel>
-          <Select label="Materia" value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+          <Select
+            label="Materia"
+            value={subjectId}
+            onChange={(e) => setSubjectId(e.target.value)}
+            SelectDisplayProps={{ 'data-testid': 'catalog-filter-subject' } as HTMLAttributes<HTMLDivElement>}
+          >
             <MenuItem value="">Todas</MenuItem>
             {subjectsQuery.data?.map((s) => (
               <MenuItem key={s.id} value={s.id}>
@@ -106,7 +113,12 @@ export default function CatalogPage() {
         </FormControl>
         <FormControl sx={{ minWidth: 180 }}>
           <InputLabel>Grado</InputLabel>
-          <Select label="Grado" value={gradeLevelId} onChange={(e) => setGradeLevelId(e.target.value)}>
+          <Select
+            label="Grado"
+            value={gradeLevelId}
+            onChange={(e) => setGradeLevelId(e.target.value)}
+            SelectDisplayProps={{ 'data-testid': 'catalog-filter-grade' } as HTMLAttributes<HTMLDivElement>}
+          >
             <MenuItem value="">Todos</MenuItem>
             {gradesQuery.data?.map((g) => (
               <MenuItem key={g.id} value={g.id}>
@@ -121,6 +133,7 @@ export default function CatalogPage() {
           onChange={(e) => setSchoolYear(e.target.value)}
           placeholder="2023-2024"
           sx={{ minWidth: 160 }}
+          inputProps={{ 'data-testid': 'catalog-filter-year' }}
         />
       </Stack>
 
@@ -133,7 +146,9 @@ export default function CatalogPage() {
       {booksQuery.isError && <Alert severity="error">No se pudo cargar el catálogo</Alert>}
 
       {booksQuery.data && booksQuery.data.length === 0 && (
-        <Alert severity="info">No se encontraron libros con esos filtros</Alert>
+        <Alert severity="info" data-testid="catalog-empty">
+          No se encontraron libros con esos filtros
+        </Alert>
       )}
 
       {grouped.map(([gradeName, books]) => (
@@ -156,7 +171,7 @@ export default function CatalogPage() {
 
 function BookCard({ book }: { book: Book }) {
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card sx={{ height: '100%' }} data-testid="book-card" data-book-id={book.id}>
       <CardActionArea component={RouterLink} to={`/books/${book.id}`}>
         {book.coverUrl ? (
           <AuthedImage

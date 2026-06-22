@@ -53,7 +53,11 @@ export default function LoginPage() {
           </Typography>
         </Stack>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} data-testid="login-error">
+            {error}
+          </Alert>
+        )}
 
         <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={2}>
@@ -65,6 +69,7 @@ export default function LoginPage() {
               required
               fullWidth
               autoComplete="email"
+              inputProps={{ 'data-testid': 'login-email' }}
             />
             <TextField
               label="Contraseña"
@@ -74,8 +79,9 @@ export default function LoginPage() {
               required
               fullWidth
               autoComplete="current-password"
+              inputProps={{ 'data-testid': 'login-password' }}
             />
-            <Button type="submit" variant="contained" size="large" disabled={loading}>
+            <Button type="submit" variant="contained" size="large" disabled={loading} data-testid="login-submit">
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </Stack>

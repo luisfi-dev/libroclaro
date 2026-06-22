@@ -65,7 +65,11 @@ export default function RegisterPage() {
           Debes tener al menos 18 años para registrarte.
         </Typography>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} data-testid="register-error">
+            {error}
+          </Alert>
+        )}
 
         <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={2}>
@@ -75,6 +79,7 @@ export default function RegisterPage() {
               onChange={(e) => setFullName(e.target.value)}
               required
               fullWidth
+              inputProps={{ 'data-testid': 'register-fullname' }}
             />
             <TextField
               label="Correo electrónico"
@@ -84,6 +89,7 @@ export default function RegisterPage() {
               required
               fullWidth
               autoComplete="email"
+              inputProps={{ 'data-testid': 'register-email' }}
             />
             <DatePicker
               label="Fecha de nacimiento"
@@ -91,7 +97,13 @@ export default function RegisterPage() {
               onChange={(d) => setBirthDate(d)}
               disableFuture
               format="dd/MM/yyyy"
-              slotProps={{ textField: { fullWidth: true, required: true } }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  required: true,
+                  inputProps: { 'data-testid': 'register-birthdate' },
+                },
+              }}
             />
             <TextField
               label="Contraseña"
@@ -102,6 +114,7 @@ export default function RegisterPage() {
               fullWidth
               helperText="Mínimo 8 caracteres"
               autoComplete="new-password"
+              inputProps={{ 'data-testid': 'register-password' }}
             />
             <TextField
               label="Confirmar contraseña"
@@ -111,8 +124,9 @@ export default function RegisterPage() {
               required
               fullWidth
               autoComplete="new-password"
+              inputProps={{ 'data-testid': 'register-password-confirm' }}
             />
-            <Button type="submit" variant="contained" size="large" disabled={loading}>
+            <Button type="submit" variant="contained" size="large" disabled={loading} data-testid="register-submit">
               {loading ? 'Creando cuenta...' : 'Crear cuenta'}
             </Button>
           </Stack>
