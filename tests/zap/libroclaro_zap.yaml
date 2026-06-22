@@ -1,0 +1,302 @@
+---
+# Plan de automatización OWASP ZAP — LibroClaro
+# Versión: ZAP 2.14+  (Automation Framework)
+#
+# Cubre:
+#   A01 — Broken Access Control         (control de acceso por rol)
+#   A02 — Cryptographic Failures        (datos sensibles en respuestas)
+#   A03 — Injection                     (SQL, NoSQL, command injection)
+#   A05 — Security Misconfiguration     (headers de seguridad, server info)
+#   A07 — Identification & Auth Failures (brute force, tokens inválidos)
+#
+# Cómo ejecutar (desde la raíz del repositorio):
+#   docker run --rm --network host \
+#     -v $(pwd)/tests/zap:/zap/wrk \
+#     ghcr.io/zaproxy/zaproxy:stable \
+#     zap.sh -cmd -autorun /zap/wrk/libroclaro_zap.yaml
+#
+# O con la GUI: File → Load Session → abrir este YAML como "Automation Plan"
+
+env:
+  contexts:
+    - name: "LibroClaro API"
+      urls:
+        - "http://localhost:4000"
+      includePaths:
+        - "http://localhost:4000/api/.*"
+      excludePaths:
+        # Evitar cerrar la sesión durante el escaneo
+        - "http://localhost:4000/api/auth/logout"
+      authentication:
+        method: "script"
+        parameters:
+          scriptEngine: "ECMAScript : Graal.js"
+          script: "auth_libroclaro.js"
+          scriptType: "authentication"
+          loginUrl: "http://localhost:4000/api/auth/login"
+        verification:
+          method: "response"
+          loggedInRegex: "\\Q\"token\"\\E"
+          loggedOutRegex: "\\Q\"error\"\\E"
+          pollFrequency: 60
+          pollUnits: "requests"
+          pollUrl: "http://localhost:4000/api/auth/me"
+          pollPostData: ""
+      sessionManagement:
+        method: "script"
+        parameters:
+          scriptEngine: "ECMAScript : Graal.js"
+          script: "session_libroclaro.js"
+          scriptType: "session"
+      users:
+        - name: "docente"
+          credentials:
+            username: "docente01@libroclaro.test"
+            password: "docente1234"
+        - name: "editor"
+          credentials:
+            username: "editor@libroclaro.test"
+            password: "editor1234"
+
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+
+  # ── 1. Cargar scripts de autenticación y sesión ──────────────────────
+  - type: "script"
+    name: "Cargar script de autenticación"
+    parameters:
+      action: "add"
+      type: "authentication"
+      engine: "ECMAScript : Graal.js"
+      name: "auth_libroclaro"
+      file: "auth_libroclaro.js"
+
+  - type: "script"
+    name: "Cargar script de sesión"
+    parameters:
+      action: "add"
+      type: "session"
+      engine: "ECMAScript : Graal.js"
+      name: "session_libroclaro"
+      file: "session_libroclaro.js"
+
+  # ── 2. Configurar análisis pasivo ────────────────────────────────────
+  # Detecta: A02 (datos sensibles), A05 (headers inseguros), A07 (cookies sin Secure/HttpOnly)
+  - type: "passiveScan-config"
+    name: "Configurar análisis pasivo"
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+      enableTags: false
+      rules:
+        # Forzar habilitación de reglas clave de OWASP
+        - id: 10010   # Cookie sin Secure flag         (A05)
+          threshold: "Medium"
+        - id: 10011   # Cookie sin HttpOnly flag        (A05)
+          threshold: "Medium"
+        - id: 10015   # Incomplete or No Cache-control  (A05)
+          threshold: "Medium"
+        - id: 10016   # Web Browser XSS Protection      (A05)
+          threshold: "Medium"
+        - id: 10019   # Content-Type Header Missing      (A05)
+          threshold: "Medium"
+        - id: 10020   # X-Frame-Options Header           (A05)
+          threshold: "Medium"
+        - id: 10021   # X-Content-Type-Options Missing   (A05)
+          threshold: "Medium"
+        - id: 10023   # Information Disclosure           (A02/A05)
+          threshold: "Low"
+        - id: 10024   # Information Disclosure — Sensitive (A02)
+          threshold: "Low"
+        - id: 10025   # Information Disclosure in URL     (A02)
+          threshold: "Low"
+        - id: 10027   # Info Disclosure — Suspicious comments (A05)
+          threshold: "Low"
+        - id: 10036   # Server Leaks Version Info (A05)
+          threshold: "Low"
+        - id: 10038   # Content Security Policy           (A05)
+          threshold: "Medium"
+        - id: 10054   # Cookie without SameSite           (A05)
+          threshold: "Low"
+        - id: 10096   # Timestamp Disclosure              (A02)
+          threshold: "Low"
+        - id: 10098   # Cross-Domain Misconfiguration     (A05)
+          threshold: "Medium"
+        - id: 90022   # Application Error Disclosure      (A05)
+          threshold: "Medium"
+
+  # ── 3. Spider (descubrir endpoints) ─────────────────────────────────
+  - type: "spider"
+    name: "Spider — descubrir rutas de la API"
+    parameters:
+      context: "LibroClaro API"
+      user: "docente"
+      url: "http://localhost:4000/api"
+      maxDuration: 2
+      maxDepth: 5
+      acceptCookies: false
+      handleParameters: "USE_ALL"
+    tests:
+      - type: "stats"
+        action: "warn"
+        statistic: "automation.spider.urls.added"
+        operator: "<"
+        value: 1
+        onFail: "warn"
+
+  # ── 4. Esperar análisis pasivo ───────────────────────────────────────
+  - type: "passiveScan-wait"
+    name: "Esperar análisis pasivo del spider"
+    parameters:
+      maxDuration: 5
+
+  # ── 5. Escaneo activo — usuario docente (A01, A03) ───────────────────
+  # A01: ZAP intenta acceder a recursos sin autorización suficiente
+  # A03: Inyecta payloads de SQL injection, XSS, command injection
+  - type: "activeScan"
+    name: "Active Scan — como docente (A01, A03, A05)"
+    parameters:
+      context: "LibroClaro API"
+      user: "docente"
+      maxRuleDurationInMins: 5
+      maxScanDurationInMins: 15
+      addQueryParam: false
+      injectPluginIdInHeader: false
+      handleAntiCSRFTokens: false
+      threadPerHost: 2
+    policyDefinition:
+      defaultStrength: "Medium"
+      defaultThreshold: "Medium"
+      rules:
+        # A03 — SQL Injection
+        - id: 40018
+          name: "SQL Injection"
+          strength: "High"
+          threshold: "Medium"
+        # A03 — SQL Injection (MySQL specific)
+        - id: 40019
+          name: "SQL Injection (MySQL)"
+          strength: "High"
+          threshold: "Medium"
+        # A03 — SQL Injection (PostgreSQL)
+        - id: 40020
+          name: "SQL Injection (PostgreSQL)"
+          strength: "High"
+          threshold: "Medium"
+        # A03 — NoSQL Injection (MongoDB)
+        - id: 40033
+          name: "NoSQL Injection (MongoDB)"
+          strength: "Medium"
+          threshold: "Medium"
+        # A03 — Command Injection
+        - id: 90020
+          name: "Remote OS Command Injection"
+          strength: "High"
+          threshold: "Medium"
+        # A03 — LDAP Injection
+        - id: 40015
+          name: "LDAP Injection"
+          strength: "Medium"
+          threshold: "Medium"
+        # A03 — XSS Reflected
+        - id: 40012
+          name: "Cross Site Scripting (Reflected)"
+          strength: "High"
+          threshold: "Medium"
+        # A05 — Security Misconfiguration
+        - id: 20012
+          name: "Anti-CSRF Tokens Check"
+          strength: "Medium"
+          threshold: "Medium"
+        # A01 — Path Traversal
+        - id: 6
+          name: "Path Traversal"
+          strength: "High"
+          threshold: "Medium"
+        # A01 — Remote File Inclusion
+        - id: 7
+          name: "Remote File Inclusion"
+          strength: "Medium"
+          threshold: "Medium"
+
+  # ── 6. Escaneo activo — usuario editor (A01 privilege escalation) ────
+  # Verifica que un editor no pueda realizar operaciones fuera de su rol
+  - type: "activeScan"
+    name: "Active Scan — como editor (A01 escalada de privilegios)"
+    parameters:
+      context: "LibroClaro API"
+      user: "editor"
+      maxRuleDurationInMins: 3
+      maxScanDurationInMins: 5
+      threadPerHost: 2
+    policyDefinition:
+      defaultStrength: "Medium"
+      defaultThreshold: "Medium"
+      rules:
+        - id: 6
+          name: "Path Traversal"
+          strength: "High"
+          threshold: "Low"
+        - id: 40018
+          name: "SQL Injection"
+          strength: "High"
+          threshold: "Medium"
+
+  # ── 7. Fuerza bruta en login (A07) ───────────────────────────────────
+  # Verifica que el rate limiter bloquea intentos repetidos
+  - type: "activeScan"
+    name: "Active Scan — fuerza bruta login (A07)"
+    parameters:
+      context: "LibroClaro API"
+      maxRuleDurationInMins: 2
+      maxScanDurationInMins: 3
+      threadPerHost: 1
+    policyDefinition:
+      defaultStrength: "Off"
+      defaultThreshold: "Off"
+      rules:
+        - id: 40023
+          name: "Possible Username Enumeration"
+          strength: "High"
+          threshold: "Low"
+
+  # ── 8. Generar reporte HTML ──────────────────────────────────────────
+  - type: "report"
+    name: "Reporte HTML OWASP"
+    parameters:
+      template: "traditional-html"
+      reportDir: "resultados"
+      reportFile: "reporte_owasp_zap.html"
+      reportTitle: "LibroClaro — Pruebas de Seguridad OWASP ZAP"
+      reportDescription: >
+        Análisis de seguridad automatizado con OWASP ZAP.
+        Cubre OWASP Top 10: A01 Broken Access Control, A02 Cryptographic Failures,
+        A03 Injection, A05 Security Misconfiguration, A07 Authentication Failures.
+    risks:
+      - high
+      - medium
+      - low
+      - informational
+    confidences:
+      - confirmed
+      - high
+      - medium
+      - low
+    sections:
+      - instancecount
+      - alertdetails
+      - statistics
+      - chart
+
+  # ── 9. Generar reporte JSON (para CI/CD) ─────────────────────────────
+  - type: "report"
+    name: "Reporte JSON OWASP"
+    parameters:
+      template: "sarif-json"
+      reportDir: "resultados"
+      reportFile: "reporte_owasp_zap.sarif.json"
+      reportTitle: "LibroClaro OWASP ZAP"
