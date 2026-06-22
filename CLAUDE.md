@@ -166,3 +166,8 @@ MongoDB.
 Usar la etiqueta luisfidev/libroclaro:latest para subir la imagen de la API a
 Docker Hub, y la etiqueta luisfidev/libroclaro-frontend:latest para la imagen
 del front-end.
+
+## Plan de pruebas
+
+El plan de pruebas completo, incluyendo pruebas automatizadas, de rendimiento y
+de seguridad, está descrito en el archivo TESTPLAN.md.

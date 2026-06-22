@@ -91,6 +91,34 @@ Web disponible en `http://localhost:5173`. Vite hace proxy de `/api/*` a
 - El PDF anotado se descarga desde el lector con el botón "Anotado" (requiere
   Pro / Institucional).
 
+## Pruebas
+
+Las pruebas unitarias y de integración (Jest) siguen el plan en
+[TESTPLAN.md](TESTPLAN.md). Las unitarias y las de la web no requieren Docker;
+las de integración de la API corren contra los contenedores Postgres y Mongo de
+`docker compose` (sobre una BD separada `libroclaro_test`, sin tocar los datos de
+desarrollo).
+
+```bash
+# API: pruebas unitarias (Prisma/Mongoose mockeados) — sin Docker
+cd api && npm run test:unit
+
+# API: pruebas de integración (Supertest contra Postgres/Mongo de docker)
+docker compose up -d postgres mongo          # o: cd api && npm run test:db:up
+cd api && npm run test:integration
+
+# API: todo + cobertura (services ≥90%, app ≥80%, global ≥75%)
+cd api && npm run test:coverage
+
+# Web: componentes y helpers (jsdom)
+cd web && npm test
+cd web && npm run test:coverage
+```
+
+La suite de integración crea la BD `libroclaro_test`, aplica `prisma migrate
+deploy` y el seed automáticamente (ver `api/test/integration/globalSetup.ts`), y
+limpia el estado entre cada test.
+
 ## Comandos útiles
 
 | Comando                                    | Descripción                         |

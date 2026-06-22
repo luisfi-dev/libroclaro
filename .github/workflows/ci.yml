@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# Cancela ejecuciones previas del mismo ref si llega un push nuevo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Front-end: lint de tipos + pruebas Jest (jsdom). No requiere bases de datos.
+  # -------------------------------------------------------------------------
+  web:
+    name: Web (typecheck + Jest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Verificar tipos (tsc)
+        run: npm run typecheck
+      - name: Ejecutar pruebas con cobertura
+        run: npm run test:coverage
+
+  # -------------------------------------------------------------------------
+  # API: pruebas unitarias (Prisma/Mongoose mockeados). No requiere Docker.
+  # -------------------------------------------------------------------------
+  api-unit:
+    name: API unitarias (Jest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Generar el cliente Prisma
+        run: npx prisma generate
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Ejecutar pruebas unitarias
+        run: npm run test:unit
+
+  # -------------------------------------------------------------------------
+  # API: pruebas de integración con Supertest contra Postgres y Mongo reales,
+  # provistos como service containers (equivalente al docker compose local).
+  # -------------------------------------------------------------------------
+  api-integration:
+    name: API integración (Jest + Postgres + Mongo)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: libroclaro
+          POSTGRES_PASSWORD: libroclaro
+          POSTGRES_DB: libroclaro_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U libroclaro"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      mongo:
+        image: mongo:7
+        env:
+          MONGO_INITDB_ROOT_USERNAME: libroclaro
+          MONGO_INITDB_ROOT_PASSWORD: libroclaro
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-secret-libroclaro-integration-1234567890
+      JWT_EXPIRES_IN: 7d
+      DATABASE_URL: postgresql://libroclaro:libroclaro@localhost:5432/libroclaro_test?schema=public
+      MONGO_URL: mongodb://libroclaro:libroclaro@localhost:27017/libroclaro_test?authSource=admin
+      STORAGE_DIR: ./storage-test
+      CORS_ORIGIN: '*'
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Generar el cliente Prisma
+        run: npx prisma generate
+      - name: Ejecutar pruebas de integración
+        run: npm run test:integration
