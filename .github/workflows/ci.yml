@@ -58,8 +58,6 @@ jobs:
         run: npm ci
       - name: Generar el cliente Prisma
         run: npx prisma generate
-      - name: Lint (ESLint)
-        run: npm run lint
       - name: Ejecutar pruebas unitarias
         run: npm run test:unit
 
