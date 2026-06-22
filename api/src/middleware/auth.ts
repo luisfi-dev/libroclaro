@@ -4,6 +4,7 @@ import { UserRole } from '@prisma/client';
 import { env } from '../config/env';
 import { prisma } from '../config/prisma';
 import { HttpError } from '../utils/HttpError';
+import { logger } from '../config/logger';
 
 interface JwtPayload {
   sub: string;
@@ -32,9 +33,13 @@ export async function authenticate(
     next();
   } catch (err) {
     if (err instanceof jwt.JsonWebTokenError) {
+      // WARN #1: Token JWT invalido o expirado
+      logger.warn('Token JWT invalido o expirado', { path: req.path });
       next(HttpError.unauthorized('Token inválido o expirado'));
       return;
     }
+    // ERROR #3: Error inesperado en autenticacion
+    logger.error('Error inesperado en middleware de autenticacion', { error: (err as Error).message });
     next(err);
   }
 }

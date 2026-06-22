@@ -5,6 +5,7 @@ import { prisma } from '../config/prisma';
 import { HttpError } from '../utils/HttpError';
 import { hashPassword, isAtLeast18 } from '../services/auth.service';
 import { serializeUser } from '../utils/serializers';
+import { logger } from '../config/logger';
 
 const createEditorSchema = z.object({
   fullName: z.string().min(2).max(120),
@@ -53,5 +54,7 @@ export async function promoteToEditor(req: Request, res: Response): Promise<void
     where: { id: target.id },
     data: { role: UserRole.EDITOR, plan: SubscriptionPlan.PRO, institutionId: null },
   });
+  // DEBUG #7: Usuario promovido a editor
+  logger.debug('Usuario promovido a editor', { userId: target.id });
   res.json({ user: serializeUser(updated) });
 }

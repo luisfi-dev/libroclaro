@@ -4,6 +4,7 @@ import { SubscriptionPlan, UserRole } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { HttpError } from '../utils/HttpError';
 import { SupplementaryMaterial, serializeMaterial } from '../models/SupplementaryMaterial';
+import { logger } from '../config/logger';
 
 const createSchema = z.object({
   fromPage: z.coerce.number().int().positive(),
@@ -18,6 +19,8 @@ function ensureMaterialAccess(req: Request): void {
   if (!req.user) throw HttpError.unauthorized();
   if (req.user.role === UserRole.EDITOR) return;
   if (req.user.plan === SubscriptionPlan.GRATUITO) {
+    // WARN #6: Usuario gratuito intento acceder a material premium
+    logger.warn('Acceso denegado a material complementario: plan gratuito', { userId: req.user.id });
     throw HttpError.payment(
       'El acceso al material complementario requiere el plan Pro o Institucional',
     );
@@ -74,6 +77,8 @@ export async function create(req: Request, res: Response): Promise<void> {
     bookId: book.id,
     authorId: req.user.id,
   });
+  // DEBUG #4: Material complementario creado
+  logger.debug('Material complementario creado', { materialId: doc._id, bookId: book.id, fromPage: data.fromPage, toPage: data.toPage });
   res.status(201).json({ material: serializeMaterial(doc) });
 }
 

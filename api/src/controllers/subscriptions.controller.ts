@@ -5,6 +5,7 @@ import { prisma } from '../config/prisma';
 import { HttpError } from '../utils/HttpError';
 import { serializeInstitution, serializeInvoice, serializeUser } from '../utils/serializers';
 import { getAnnotationQuota } from '../services/quota.service';
+import { logger } from '../config/logger';
 
 const PLAN_PRICES: Record<SubscriptionPlan, number> = {
   GRATUITO: 0,
@@ -42,6 +43,8 @@ export async function subscribe(req: Request, res: Response): Promise<void> {
   if (!user) throw HttpError.notFound('Usuario no encontrado');
 
   if (user.role === UserRole.EDITOR) {
+    // WARN #5: Editor intento contratar suscripcion
+    logger.warn('Editor intento contratar suscripcion', { userId: user.id });
     throw HttpError.forbidden('Los editores no contratan planes de suscripción');
   }
 
@@ -130,6 +133,8 @@ export async function subscribe(req: Request, res: Response): Promise<void> {
     return { user: updatedUser, institution, invoice };
   });
 
+  // INFO #7: Cambio de plan de suscripcion
+  logger.info('Cambio de plan de suscripcion', { userId: user.id, previousPlan: user.plan, newPlan: plan });
   res.json({
     user: serializeUser(result.user),
     institution: result.institution ? serializeInstitution(result.institution) : null,
