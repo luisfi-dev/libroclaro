@@ -1,0 +1,204 @@
+---
+# Plan ZAP para ejecutar con Docker en Windows
+# Versión corregida: parámetros validados contra ZAP 2.14
+#
+# Comando desde la raíz del repositorio (PowerShell):
+#
+#   docker run --rm `
+#     -v "${PWD}\tests\zap:/zap/wrk/:rw" `
+#     ghcr.io/zaproxy/zaproxy:stable `
+#     zap.sh -cmd -autorun /zap/wrk/libroclaro_zap_docker.yaml
+
+env:
+  contexts:
+    - name: "LibroClaro API"
+      urls:
+        - "http://host.docker.internal:4000"
+      includePaths:
+        - "http://host.docker.internal:4000/api/.*"
+      excludePaths:
+        - "http://host.docker.internal:4000/api/auth/logout"
+      authentication:
+        method: "script"
+        parameters:
+          scriptEngine: "ECMAScript : Graal.js"
+          script: "auth_libroclaro.js"
+          scriptType: "authentication"
+          loginUrl: "http://host.docker.internal:4000/api/auth/login"
+        verification:
+          method: "response"
+          loggedInRegex: "\\Q\"token\"\\E"
+          loggedOutRegex: "\\Q\"error\"\\E"
+          pollFrequency: 60
+          pollUnits: "requests"
+          pollUrl: "http://host.docker.internal:4000/api/auth/me"
+          pollPostData: ""
+      sessionManagement:
+        method: "script"
+        parameters:
+          scriptEngine: "ECMAScript : Graal.js"
+          script: "session_libroclaro.js"
+          scriptType: "session"
+      users:
+        - name: "docente"
+          credentials:
+            username: "docente01@libroclaro.test"
+            password: "docente1234"
+        - name: "editor"
+          credentials:
+            username: "editor@libroclaro.test"
+            password: "editor1234"
+
+  parameters:
+    failOnError: false
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+
+  # ── 1. Cargar scripts de auth y sesión ───────────────────────────────
+  - type: "script"
+    name: "Cargar script de autenticación"
+    parameters:
+      action: "add"
+      type: "authentication"
+      engine: "ECMAScript : Graal.js"
+      name: "auth_libroclaro"
+      file: "auth_libroclaro.js"
+
+  - type: "script"
+    name: "Cargar script de sesión"
+    parameters:
+      action: "add"
+      type: "session"
+      engine: "ECMAScript : Graal.js"
+      name: "session_libroclaro"
+      file: "session_libroclaro.js"
+
+  # ── 2. Análisis pasivo (A02, A05) ────────────────────────────────────
+  - type: "passiveScan-config"
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+      enableTags: false
+
+  # ── 3. Registrar endpoints explícitamente ────────────────────────────
+  # El spider no puede descubrir REST endpoints via HTML links,
+  # así que los añadimos manualmente para que ZAP los escanee.
+  - type: "requestor"
+    name: "Registrar endpoints de la API"
+    parameters:
+      user: "docente"
+    requests:
+      # Auth
+      - url: "http://host.docker.internal:4000/api/auth/login"
+        method: "POST"
+        httpVersion: "HTTP/1.1"
+        headers:
+          - "Content-Type: application/json"
+        data: '{"email":"docente01@libroclaro.test","password":"docente1234"}'
+      - url: "http://host.docker.internal:4000/api/auth/me"
+        method: "GET"
+      - url: "http://host.docker.internal:4000/api/auth/register"
+        method: "POST"
+        httpVersion: "HTTP/1.1"
+        headers:
+          - "Content-Type: application/json"
+        data: '{"fullName":"Test","email":"test_zap@test.com","password":"test1234","passwordConfirmation":"test1234","birthDate":"1990-01-01"}'
+      # Libros
+      - url: "http://host.docker.internal:4000/api/books"
+        method: "GET"
+      - url: "http://host.docker.internal:4000/api/books/999999"
+        method: "GET"
+      - url: "http://host.docker.internal:4000/api/books/999999/annotations"
+        method: "GET"
+      # Suscripciones
+      - url: "http://host.docker.internal:4000/api/subscriptions/status"
+        method: "GET"
+      # Perfil
+      - url: "http://host.docker.internal:4000/api/users/me"
+        method: "GET"
+      # Rutas de solo editor (A01 — deben retornar 403)
+      - url: "http://host.docker.internal:4000/api/editors"
+        method: "GET"
+      - url: "http://host.docker.internal:4000/api/books"
+        method: "POST"
+        httpVersion: "HTTP/1.1"
+        headers:
+          - "Content-Type: application/json"
+        data: '{"title":"ZAP Test"}'
+
+  # ── 4. Spider desde health (para descubrir rutas adicionales) ────────
+  - type: "spider"
+    name: "Spider complementario"
+    parameters:
+      context: "LibroClaro API"
+      user: "docente"
+      url: "http://host.docker.internal:4000/api/health"
+      maxDuration: 1
+      maxDepth: 3
+      acceptCookies: false
+
+  # ── 5. Esperar análisis pasivo ───────────────────────────────────────
+  - type: "passiveScan-wait"
+    parameters:
+      maxDuration: 5
+
+  # ── 6. Active Scan (A01, A03, A05) ──────────────────────────────────
+  - type: "activeScan"
+    name: "Active Scan — A01, A03, A05"
+    parameters:
+      context: "LibroClaro API"
+      user: "docente"
+      maxRuleDurationInMins: 5
+      maxScanDurationInMins: 20
+      threadPerHost: 2
+    policyDefinition:
+      defaultStrength: "Medium"
+      defaultThreshold: "Medium"
+      rules:
+        - id: 40018
+          name: "SQL Injection"
+          strength: "High"
+          threshold: "Medium"
+        - id: 40020
+          name: "SQL Injection (PostgreSQL)"
+          strength: "High"
+          threshold: "Medium"
+        - id: 90020
+          name: "Remote OS Command Injection"
+          strength: "High"
+          threshold: "Medium"
+        - id: 40012
+          name: "Cross Site Scripting (Reflected)"
+          strength: "High"
+          threshold: "Medium"
+        - id: 6
+          name: "Path Traversal"
+          strength: "High"
+          threshold: "Medium"
+
+  # ── 7. Reporte HTML ──────────────────────────────────────────────────
+  - type: "report"
+    parameters:
+      template: "traditional-html"
+      reportDir: "resultados"
+      reportFile: "reporte_owasp_zap.html"
+      reportTitle: "LibroClaro — Pruebas de Seguridad OWASP ZAP"
+      reportDescription: >
+        Análisis OWASP ZAP automatizado sobre LibroClaro API.
+        Cubre A01 Broken Access Control, A02 Cryptographic Failures,
+        A03 Injection, A05 Security Misconfiguration, A07 Auth Failures.
+    risks:
+      - high
+      - medium
+      - low
+    confidences:
+      - confirmed
+      - high
+      - medium
+      - low
+    sections:
+      - instancecount
+      - alertdetails
+      - alertcount
