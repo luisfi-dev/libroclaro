@@ -10,7 +10,14 @@ const schema = z.object({
   MONGO_URL: z.string().url(),
   STORAGE_DIR: z.string().default('./storage'),
   CORS_ORIGIN: z.string().default('*'),
-  APPINSIGHTS_CONNECTION_STRING: z.string(),
+  // `trim()` + vacío → undefined: un valor en blanco en el .env (p. ej.
+  // `APPINSIGHTS_CONNECTION_STRING= `) no debe contar como configurado, para no
+  // inicializar el SDK de telemetría en local ni en los tests.
+  APPINSIGHTS_CONNECTION_STRING: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
 });
 
 const parsed = schema.safeParse(process.env);

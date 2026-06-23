@@ -15,3 +15,6 @@ process.env.MONGO_URL =
   'mongodb://libroclaro:libroclaro@localhost:27017/libroclaro_test?authSource=admin';
 process.env.STORAGE_DIR = process.env.STORAGE_DIR ?? './storage-test';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
+
+// Sin telemetría en pruebas: no inicializar Application Insights.
+process.env.APPINSIGHTS_CONNECTION_STRING = '';
