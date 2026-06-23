@@ -58,6 +58,7 @@ services:
       MONGO_URL: mongodb://libroclaro:libroclaro@mongo:27017/libroclaro?authSource=admin
       STORAGE_DIR: /app/storage
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:8080}
+      APPINSIGHTS_CONNECTION_STRING: InstrumentationKey=3454ece3-3330-46bf-840d-5a22d7ca296a;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/;LiveEndpoint=https://westus2.livediagnostics.monitor.azure.com/;ApplicationId=172d76c1-d6ab-40be-bb27-4fcb4ab7bd8c
     ports:
       - "4000:4000"
     volumes:
