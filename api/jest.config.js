@@ -11,7 +11,19 @@
  * `npm run test:integration` → solo integration
  */
 const tsJestTransform = {
-  '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
+  '^.+\\.ts$': [
+    'ts-jest',
+    {
+      tsconfig: '<rootDir>/tsconfig.test.json',
+      // `isolatedModules` (en tsconfig.test.json) hace que TS preserve los
+      // `import()` dinámicos en lugar de bajarlos a `require()`. Bajo Jest (sin
+      // `--experimental-vm-modules`) eso truena con
+      // "A dynamic import callback was invoked without --experimental-vm-modules".
+      // Desactivar isolatedModules en la transpilación de tests permite que TS
+      // reescriba `import()` → `require()` para CommonJS.
+      isolatedModules: false,
+    },
+  ],
 };
 
 /** @type {import('jest').Config} */

@@ -12,3 +12,6 @@ process.env.DATABASE_URL =
 process.env.MONGO_URL = process.env.MONGO_URL ?? 'mongodb://test:test@localhost:27017/test?authSource=admin';
 process.env.STORAGE_DIR = process.env.STORAGE_DIR ?? './storage-test';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
+
+// Sin telemetría en pruebas: no inicializar Application Insights.
+process.env.APPINSIGHTS_CONNECTION_STRING = '';
